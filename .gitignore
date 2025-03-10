@@ -2,6 +2,7 @@
 venv/ 
 env/ 
 ENV/  
+.venv/
   
 # Python cache files  
 __pycache__/  
@@ -43,3 +44,9 @@ pinecone_index/
   
 # Allow specific files  
 !requirements.txt 
+
+# Version files
+0.0.15
+0.2.2
+0.22.0
+"Gitcmdgit.exe\357\200\242 checkout -b tap-bonds-ai-layer"
