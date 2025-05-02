@@ -39,7 +39,6 @@ pinecone_index/
 *.pth  
   
 # Large data files  
-*.csv  
 *.json  
   
 # Allow specific files  
