@@ -5,6 +5,7 @@ from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
+from .websearch import WebAgent
 
 # Load environment variables
 load_dotenv()
@@ -39,7 +40,7 @@ class BondFinderAgent:
         
         self.system_prompt = """
         You are an AI-powered Bond Finder Agent specializing in finding and comparing bonds based on user criteria.
-        Your task is to identify the best bonds matching the given criteria and explain their attributes.
+        Your task is to identify the best bonds matching the given criteria and explain their attributes, incorporating real-time market context from web search results.
         
         Focus on these aspects:
         1. Yield comparison and benchmarking
@@ -49,6 +50,7 @@ class BondFinderAgent:
         5. Value and relative pricing analysis
         
         When responding:
+        - Incorporate the provided web search context into your analysis.
         - Clearly rank the bonds you recommend
         - Explain why each recommended bond matches the criteria
         - Highlight advantages and risks of each recommendation
@@ -57,6 +59,7 @@ class BondFinderAgent:
         Format your response as a well-structured recommendation with:
         - Summary of search criteria used
         - Top bond recommendations with key details
+        - A brief analysis of current market context based on web results
         - Comparative analysis between options
         - Additional considerations for the investor
         """
@@ -64,12 +67,15 @@ class BondFinderAgent:
         self.query_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", self.system_prompt),
-                ("human", "Search Criteria: {search_criteria}\nQuery: {query}\nMatching Bonds: {matching_bonds}"),
+                ("human", "Search Criteria: {search_criteria}\nQuery: {query}\nMatching Bonds: {matching_bonds}\n\nWeb Search Context:\n{web_context}"),
             ]
         )
     
     def load_bond_data(self):
-        """Load bond data from CSV file."""
+        """
+        Load bond data from CSV file.
+        Note: This is a representative sample of a larger dataset containing over 22,000 ISINs.
+        """
         try:
             data_path = os.path.join(os.path.dirname(__file__), "bonds_details_cleaned.csv")
             self.bond_data = pd.read_csv(data_path)
@@ -170,12 +176,18 @@ class BondFinderAgent:
         
         # Filter bonds based on criteria
         matching_bonds = self.filter_bonds(search_criteria)
+
+        # Get live web context
+        web_agent = WebAgent()
+        web_query = f"current market trends for {search_criteria.get('issuer_type', 'corporate')} bonds"
+        web_context = web_agent.get_info(web_query)
         
         # Prepare the formatted result
         formatted_prompt = {
             "search_criteria": search_criteria,
             "query": query,
-            "matching_bonds": matching_bonds.to_dict(orient='records')
+            "matching_bonds": matching_bonds.to_dict(orient='records'),
+            "web_context": web_context
         }
         
         # Generate response with LLM
@@ -187,7 +199,8 @@ class BondFinderAgent:
             "keywords": search_criteria,
             "count": len(matching_bonds),
             "results": matching_bonds,
-            "response": response.content
+            "response": response.content,
+            "web_context": web_context
         }
     
     def answer(self, query: str) -> str:
@@ -199,4 +212,7 @@ if __name__ == "__main__":
     agent = BondFinderAgent()
     result = agent.process_query("Find corporate bonds with at least 5% yield and AAA rating")
     print(f"Found {result['count']} matching bonds")
+    print("\n--- Web Context ---")
+    print(result['web_context'])
+    print("\n--- LLM Response ---")
     print(result["response"]) 

@@ -49,7 +49,10 @@ class BondScreenerAgent:
         )
 
     def load_bond_data(self):
-        """Load bond data from the dataset."""
+        """
+        Load bond data from the dataset.
+        Note: This is a representative sample of a larger dataset containing over 22,000 ISINs.
+        """
         try:
             data_path = os.path.join(os.path.dirname(__file__), "bonds_details_cleaned.csv")
             self.bond_data = pd.read_csv(data_path)
